@@ -1,0 +1,123 @@
+#!/bin/bash
+# honeywall
+
+depends=( bash chmod nc tshark sudo notify-send )
+
+echo >&2
+echo -e "Welcome to HoneyWall honeypot  :)" >&2
+echo >&2
+
+[[ -d /tmp/honeywall/ ]] || mkdir -p /tmp/honeywall
+
+trapme() {
+    echo -e "Bye!"
+    rm -f /tmp/honeywall-pluginshandler
+    kill -9 $(cat /tmp/honeywall.lck 2>/dev/null) 2>/dev/null
+    rm -f /tmp/honeywall.lck
+    killall -CONT honeywall-pluginshandler && 
+        (killall -9 honeywall-pluginshandler || sudo killall -9 honeywall-pluginshandler)
+    pidof nc && (killall -9 nc || sudo killall -9 nc)
+    killall -9 $(basename $0)
+    exit
+}
+
+[[ $1 == "--stop" ]] && echo "Stopping the honeypot." && trapme
+[[ -f /tmp/honeywall.lck ]] && echo "Honeywall is already running!" && exit 1
+echo -e "Honeywall started $(date)"
+
+fail() {
+    echo -e "$1" >&2
+    echo -e "Honeywall terminated with error 1, $(date)"
+    trapme
+    exit 1
+}
+
+makeph() {
+    local f=/tmp/honeywall-pluginshandler
+    echo '#!/bin/bash' > $f
+    echo "sudo -u $USER $notify \"Possible attack detected!\nPlugin: \$1\nLive logs: $logdir\"" >> $f
+    echo "tshark -i $interface -w \"$logdir/\$(date +%s)_\$1.pcap\"  &" >> $f
+    echo "source \"\$2/\$1.sh\"" >> $f
+    echo "start 2>\"$logdir/\$(date +%s)_\$1.log\"" >> $f
+    chmod +x /tmp/honeywall-pluginshandler
+}
+
+usertrap() {
+    echo "Honeywall terminated by user, $(date)"
+    echo "Bye!"
+    rm -f /tmp/honeywall-pluginshandler
+    rm -f /tmp/honeywall.lck
+    exit 0
+}
+
+watchloop() {
+    while true; do
+        $4 nc -vv $2 -l $3 -e "/tmp/honeywall-pluginshandler '$1' \
+            '$pluginsdir'" 2>"$logdir/$(date +%s)_nc.log"
+    done
+}
+
+trap usertrap INT HUP
+trap trapme USR1
+echo $BASHPID > /tmp/honeywall.lck
+echo -e "Reading configuration..." >&2
+if [[ -r honeywall.conf ]]; then
+    source honeywall.conf || fail "Invalid configuration file. :("
+elif [[ -r ~/.honeywall.conf ]]; then
+    source ~/.honeywall.conf || fail "Invalid configuration file. :("
+elif [[ -r /etc/honeywall/honeywall.conf ]]; then
+    source /etc/honeywall/honeywall.conf || fail "Invalid configration file. :("
+else
+    fail "No configuration file found. :("
+fi
+
+for bin in ${depends[@]}; do
+    if [[ -x "$(which $bin 2>/dev/null)" ]]; then
+        continue
+    else
+        fail "The required program '$bin' is not in your \$PATH."
+    fi
+done
+
+if [[ -d $pluginsdir ]]; then
+    ls "$pluginsdir/"*.sh >/dev/null 2>/dev/null || fail "No plugins in \$pluginsdir!"
+else
+    fail "\$pluginsdir does not exist, or is not a directory!"
+fi
+
+makeph
+counter=0
+for plugin in ${plugins[@]}; do
+    echo -e "Initializing plugin: $plugin"
+
+    if [[ -x $pluginsdir/$plugin.sh ]]; then
+        source "$pluginsdir/$plugin.sh" || fail "Invalid plugin: $plugin"
+
+        if [[ $tcp == "1" ]]; then
+            ncproto="-t"
+        else
+            ncproto="-u"
+        fi
+
+        if [[ $port -le 1024 ]]; then
+            echo -e "Initializing sudo. You maybe asked for your password."
+            sudo -v
+            run=sudo
+            ncport="-p $port $ncopts"
+        elif [[ $port -le 65535 && $port -ge 1025 ]]; then
+            ncport="-p $port $ncopts"
+            run=
+        else 
+            fail "Invalid port ($port) in plugin: $plugin"
+        fi
+
+        watchloop "$plugin" "$ncproto" "$ncport" "$run" &
+
+        echo " '--> Done."
+        let counter=$counter+1
+    else
+        fail "Initializing plugin failed!"
+    fi
+done
+
+echo -e "$counter plugins initialized."
