@@ -8,6 +8,7 @@ import json
 import os
 import time
 import matplotlib.pyplot as plt
+os.system('snort -A console -i eth0 -c /etc/snort/snort.conf -l /var/log/snort -K ascii ') 
 app = Flask(__name__)
 CORS(app)
 
