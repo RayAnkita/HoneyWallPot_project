@@ -20,7 +20,7 @@ def log_request_info():
     f.write(str(user))
     f.write("\n")
     f.write('Headers: ')
-    f.write(str(request.headers))
+    f.write(str(request))
     f.write('Body: ')
     f.write(str(request.get_data()))
     f.close()
