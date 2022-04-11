@@ -1,2 +1,7 @@
 user : a1a7dc07b472491fb5b90d480516980e
-Headers: <Request 'http://127.0.0.1:5000/' [GET]>Body: b''
+Headers: <Request 'http://127.0.0.1:5000/' [GET]>Body: b''user : 0a6cbef64d7c488f977bba751f163741
+Headers: <Request 'http://127.0.0.1:5000/' [GET]>Body: b''user : a71545d32d4a407ea1b471f5a6aef13c
+Headers: <Request 'http://127.0.0.1:5000/creds' [GET]>Body: b''user : 3993b2042eff4c628f4c0705645885ed
+Headers: <Request 'http://127.0.0.1:5000/creds' [GET]>Body: b''user : 77f5c291f9154a89ac18be0a4fa4a2ed
+Headers: <Request 'http://127.0.0.1:5000/creds' [GET]>Body: b''user : 7a4a49aa3612427f8be4787a399198a6
+Headers: <Request 'http://127.0.0.1:5000/submit/' [GET]>Body: b''
