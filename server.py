@@ -1,5 +1,6 @@
 from flask import Flask, render_template
 from flask import request, jsonify
+from flask_cors import CORS
 import cv2
 import requests
 import uuid
@@ -8,22 +9,16 @@ import os
 import time
 import matplotlib.pyplot as plt
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/')
 def index():
-    # geoip_data = 'https://ip-geolocation.whoisxmlapi.com/api/v1?apiKey=at_NwyOP2TItJ93PQ7QHiSoy97AYWEHX&ipAddress={}'.format(request.remote_addr)
-    geoip_data = 'https://ipinfo.io/'
-    r = requests.get(geoip_data)
-    # print(r.text)
-    # json_data = json.loads(r.text)
-    f = open("location.txt", "a")
-    f.write(str(r.text))
-    f.close()
-    # j = json.loads(r.text)
-    # city = j['city']
-
-    # print(city)
     return render_template('index.html')
+
+@app.route('/creds')
+def creds():
+    f = open("data.json", "r")
+    return jsonify(f.read())
 
 @app.route('/screenshot/')
 def my_link():
@@ -72,6 +67,7 @@ def submit():
     print(os.listdir(directory)) 
     filename = 'Intruder '+user+'.jpg'
     cv2.imwrite(filename, img1)  
+    return render_template('index.html')
 
 if __name__ == '__main__':
   app.run(debug=True)
