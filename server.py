@@ -11,6 +11,20 @@ import matplotlib.pyplot as plt
 app = Flask(__name__)
 CORS(app)
 
+@app.before_request
+def log_request_info():
+    user = uuid.uuid4().hex
+    f = open("connectionrequests.txt", "a")
+    # f.write("user :"+user+str(r.text))
+    f.write("user : ")
+    f.write(str(user))
+    f.write("\n")
+    f.write('Headers: ')
+    f.write(str(request.headers))
+    f.write('Body: ')
+    f.write(str(request.get_data()))
+    f.close()
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -26,8 +40,6 @@ def my_link():
         
     if cap.isOpened():
         ret, frame = cap.read()
-        print(ret)
-        print(frame)
     else:
         ret = False
 
