@@ -20,4 +20,18 @@ Headers: <Request 'http://127.0.0.1:5000/' [GET]>Body: b''user : 8eca24566a7e41e
 Headers: <Request 'http://127.0.0.1:5000/creds' [GET]>Body: b''user : cc1d2d672b7744cda3a69353b40878b8
 Headers: <Request 'http://127.0.0.1:5000/creds' [GET]>Body: b''user : 11c1b0dbd0064639bacb68de77c454a3
 Headers: <Request 'http://127.0.0.1:5000/creds' [GET]>Body: b''user : 83a3b251967f406aac309b5740a2f3aa
-Headers: <Request 'http://127.0.0.1:5000/submit/' [GET]>Body: b''
+Headers: <Request 'http://127.0.0.1:5000/submit/' [GET]>Body: b''user : bd7556c25d5940a082b2e1d262a7c83e
+Headers: <Request 'http://127.0.0.1:5000/' [GET]>Body: b''user : fa8da6f109ab415a86c9d34ff4f3032a
+Headers: <Request 'http://127.0.0.1:5000/' [GET]>Body: b''user : 9b28455c64c4433e835029d7b46d1d90
+Headers: <Request 'http://127.0.0.1:5000/' [GET]>Body: b''user : 4b924a264e124cce8a217215ec3983f0
+Headers: <Request 'http://127.0.0.1:5000/' [GET]>Body: b''user : 60daecca67e843bdae87db6236bd9e3b
+Headers: <Request 'http://127.0.0.1:5000/favicon.ico' [GET]>Body: b''user : b58aca48b40448899aebd85c5d49f1c8
+Headers: <Request 'http://127.0.0.1:5000/favicon.ico' [GET]>Body: b''user : bde65f6bf22248dca9b3f4d95af50893
+Headers: <Request 'http://127.0.0.1:5000/favicon.ico' [GET]>Body: b''user : 7746423dcfd343a99f1ebd6e9924f6bd
+Headers: <Request 'http://127.0.0.1:5000/favicon.ico' [GET]>Body: b''user : e346ef5c418b4fde8dbc423f6899e887
+Headers: <Request 'http://127.0.0.1:5000/' [GET]>Body: user : bf45dc73df90446caee95a3ab659ace4
+Headers: <Request 'http://127.0.0.1:5000/favicon.ico' [GET]>Body: user : 865ce147a1864b9daf0bbeb4861d31fb
+Headers: <Request 'http://127.0.0.1:5000/' [GET]>Body: user : ecc7d114735d497aa8a58c2866dcac23
+Headers: <Request 'http://127.0.0.1:5000/creds' [GET]>Body: user : df0dec6605694c63b54880ada710c091
+Headers: <Request 'http://127.0.0.1:5000/creds' [GET]>Body: user : 986b412b533d429398c27bd930953361
+Headers: <Request 'http://127.0.0.1:5000/creds' [GET]>Body: 
