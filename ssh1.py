@@ -4,6 +4,10 @@ import paramiko
 import SocketServer
 import traceback
 import threading
+import argparse
+import threading
+import socket
+import sys
 
 log = open("logs/ssh_log.txt", "a")
 host_key = paramiko.RSAKey(filename='keys/private.key')
@@ -114,5 +118,37 @@ def SSHConnection(client, addr):
             pass
 
 
-sshserver = SocketServer.ThreadingTCPServer(("0.0.0.0", port), SSHConnection)
-sshserver.serve_forever()
+def start_server(port, bind):
+    """Init and run the ssh server"""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind((bind, port))
+    except Exception as err:
+        print('*** Bind failed: {}'.format(err))
+        traceback.print_exc()
+        sys.exit(1)
+
+    threads = []
+    while True:
+        try:
+            sock.listen(100)
+            print('Listening for connection ...')
+            client, addr = sock.accept()
+        except Exception as err:
+            print('*** Listen/accept failed: {}'.format(err))
+            traceback.print_exc()
+        new_thread = threading.Thread(target=SSHConnection, args=(client, addr))
+        new_thread.start()
+        threads.append(new_thread)
+
+    for thread in threads:
+        thread.join()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Run a fake ssh server')
+    parser.add_argument("--port", "-p", help="The port to bind the ssh server to (default 22)", default=22, type=int, action="store")
+    parser.add_argument("--bind", "-b", help="The address to bind the ssh server to", default="", type=str, action="store")
+    args = parser.parse_args()
+    start_server(args.port, args.bind)
