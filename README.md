@@ -15,14 +15,8 @@ Just run:
 <pre><code>sh server.sh</code></pre>
 
 In case you have issues and the project is not running and giving error related to paramiko and requests
+
 then run the below command -
+
 <pre><code>sudo apt install python-paramiko<code></pre>
-<pre><code>sudo apt install python-requests<code></pre>
-
-### Old Readme
-pip install requirements.txt
-
-sudo apt install python-twisted
-
-python server.py
-
+<pre><code>sudo apt install python-paramiko<code></pre>
