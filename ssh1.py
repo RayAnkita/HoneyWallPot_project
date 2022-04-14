@@ -1,47 +1,42 @@
 #!/usr/bin/env python
 
-from binascii import hexlify
-import os
+import argparse
+import threading
 import socket
 import sys
-import threading
 import traceback
-import SocketServer
-import logging
-#import random
-
+from matplotlib.pyplot import flag
 import paramiko
-from paramiko.py3compat import b, u
+import SocketServer
+import traceback
 
-PORT = 22
-LOG_FILE = 'fakessh.log'
-#RETURN_MESSAGE = 'no way to hack into my server noob!\r\n'
-RETURN_MESSAGE = None
-DENY_ALL = False
-#PR_ALLOW = 20
-PASSWORDS = [
-"test",
-"fake"
-]
+log = open("logs/log.txt", "a")
+host_key = paramiko.RSAKey(filename='keys/private.key')
+port = 22
+#SSH_BANNER = "SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.3"
 
-# setup logging
-logger = logging.getLogger("access.log")
-logger.setLevel(logging.INFO)
-lh = logging.FileHandler(LOG_FILE)
-logger.addHandler(lh)
-#paramiko.util.log_to_file('ssh_server.log')
+def HoneypotRes(command, ssh_channel):
 
-host_key = paramiko.RSAKey(filename='test_rsa.key')
-#host_key = paramiko.DSSKey(filename='test_dss.key')
+    response = ""
+    if command.startswith("ls"):
+        response = "Desktop   Downloads   text.txt"
+    elif command.startswith("pwd"):
+        response = "/root"
+    elif command.startswith("whoami"):
+        response = "root"
+    elif command == "help":
+        return
+    else:
+        response = command + ": command not found"
 
-print('Read key: ' + u(hexlify(host_key.get_fingerprint())))
+    #log.write(response + "\n")
+    #log.flush()
+    ssh_channel.send(response + "\r\n")
 
-
-class Server (paramiko.ServerInterface):
-
-    def __init__(self, client_address):
+class HoneywallSSHServer(paramiko.ServerInterface):
+    """Settings for paramiko server interface"""
+    def _init_(self):
         self.event = threading.Event()
-        self.client_address = client_address
 
     def check_channel_request(self, kind, chanid):
         if kind == 'session':
@@ -49,61 +44,85 @@ class Server (paramiko.ServerInterface):
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
 
     def check_auth_password(self, username, password):
-        logger.info('IP: %s, User: %s, Password: %s' % (self.client_address[0], username, password))
-        if DENY_ALL == True:
-            return paramiko.AUTH_FAILED
-        #random.seed()
-        #rand = random.randint(0, 99)
-        if (username == 'root') and (password in PASSWORDS):
+        if (username == 'root') and (password  == 'password123'):
             return paramiko.AUTH_SUCCESSFUL
         return paramiko.AUTH_FAILED
+
+    def get_allowed_auths(self, username):
+        return 'password'
 
     def check_channel_shell_request(self, channel):
         self.event.set()
         return True
 
-    def check_channel_pty_request(self, channel, term, width, height, pixelwidth,
-                                  pixelheight, modes):
+    def check_channel_pty_request(self, channel, term, width, height, pixelwidth, pixelheight, modes):
         return True
 
-class SSHHandler(SocketServer.StreamRequestHandler):
-    def handle(self):
+
+def SSHConnection(client, addr):
+    """Handle a new ssh connection"""
+    log.write("\n\nConnection from: " + addr[0] + "\n")
+    print('Got a connection!')
+    try:
+        transport = paramiko.Transport(client)
+        transport.add_server_key(host_key)
+        # Change banner to appear legit on nmap (or other network) scans
+        # transport.local_version = SSH_BANNER
+        server = HoneywallSSHServer()
         try:
-            t = paramiko.Transport(self.connection)
-            t.add_server_key(host_key)
-            server = Server(self.client_address)
-            try:
-                t.start_server(server=server)
-            except paramiko.SSHException:
-                print('*** SSH negotiation failed.')
-                return
+            transport.start_server(server=server)
+        except paramiko.SSHException:
+            print('SSH connection failed.')
 
-            # wait for auth
-            chan = t.accept(20)
-            if chan is None:
-                #print('*** No channel.')
-                t.close()
-                return
-            #print('Authenticated!')
+        ssh_channel = transport.accept(20)
+        if ssh_channel is None:
+            transport.close()
 
-            server.event.wait(10)
-            if not server.event.is_set():
-                #print('*** Client never asked for a shell.')
-                t.close()
-                return
+        server.event.wait(10)
+        if not server.event.is_set():
+            transport.close()
 
-            if RETURN_MESSAGE != None:
-                chan.send(RETURN_MESSAGE)
-            chan.close()
+        try:
+            ssh_channel.send("Welcome to Ubuntu 16.04.7 LTS (GNU/Linux 4.15.0-142-generic i686)\r\n\r\n* Documentation:  https://help.ubuntu.com\r\n* Management: https://landscape.canonical.com\r\n* Support: https://ubuntu.com/advantage\n\r\n")
+            ssh_channel.send("UA Infra: Extended Security Maintenance (ESM) is not enabled.\r\n\r\n0 updates can be applied immediately.\r\n\r\n160 additional security updates can be applied with UA Infra: ESM\r\nLearn more about enabling UA Infra: ESM service for Ubuntu 16.04 at\r\nhttps://ubuntu.com/16-04")
+            ssh_channel.send("\r\nUbuntu comes with ABSOLUTELY NO WARRANTY, to the extent permitted by\r\napplicable law.\r\n\r\nLast login: Sun Apr 10 12:45:40 2022 from 10.0.2.5\r\n")
+            flag = True
+            while flag:
+                ssh_channel.send("$ ")
+                command = ""
+                while not command.endswith("\r"):
+                    transport = ssh_channel.recv(1024)
+                    # Echo input to psuedo-simulate a basic terminal
+                    ssh_channel.send(transport)
+                    command += transport.decode("utf-8")
 
-        except Exception as e:
-            print('*** Caught exception: ' + str(e.__class__) + ': ' + str(e))
+                ssh_channel.send("\r\n")
+                command = command.rstrip()
+                log.write("$ " + command + "\n")
+                print(command)
+                if command == "exit":
+                    flag = False
+                else:
+                    HoneypotRes(command, ssh_channel)
+
+        except Exception as err:
+            print('!!! Exception: {}: {}'.format(err._class_, err))
             traceback.print_exc()
-        finally:
             try:
-                t.close()
-            except:
+                transport.close()
+            except Exception:
                 pass
 
-sshserver = SocketServer.ThreadingTCPServer(("0.0.0.0", 20), SSHHandler)
+        ssh_channel.close()
+
+    except Exception as err:
+        print('!!! Exception: {}: {}'.format(err._class_, err))
+        traceback.print_exc()
+        try:
+            transport.close()
+        except:
+            pass
+
+
+sshserver = SocketServer.ThreadingTCPServer(("0.0.0.0", port), SSHConnection)
 sshserver.serve_forever()
